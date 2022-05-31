@@ -36,14 +36,18 @@ struct ChessMove { // 0 = normal, 1 = castling, 2 = en passant // 32 bytes
 
     // En passant
     uint8_t pawnRow : 3; // 3 bits
-    uint8_t side : 1; // 1 bit // 0 = left, 1 = right
+    uint8_t enSide : 1; // 1 bit // 0 = left, 1 = right
 
     ChessMove(Cordinate from, Cordinate to) : moveType(0), start(from), end(to) {} // Normal move
     ChessMove(uint8_t color, uint8_t side, uint8_t rookStart, uint8_t kingStart = 4) : moveType(1), rookStart(rookStart), kingStart(kingStart), color(color), side(side) {} // Castling
-    ChessMove(uint8_t row, uint8_t side, uint8_t color) : moveType(2), pawnRow(row), side(side), color(color) {} // En passant
+    ChessMove(uint8_t row, uint8_t side, uint8_t color) : moveType(2), pawnRow(row), enSide(side), color(color) {} // En passant
 };
 
 typedef std::array<std::array<Piece, 8>, 8> ChessGrid;
 
 typedef std::vector<ChessMove> MoveList;
 
+struct Difference {
+    int8_t xDiff;
+    int8_t yDiff;
+};

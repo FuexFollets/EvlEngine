@@ -25,6 +25,8 @@ class ChessGame {
 
     void makeMove(const ChessMove);
 
+    std::vector<ChessMove> squareMoves(const Cordinate);
+
     std::vector<ChessMove> avalibleMoves();
 
     std::vector<ChessMove> legalMoves();
@@ -51,3 +53,4 @@ void ChessGame::makeMove(const ChessMove move) {
 
     }
 }
+

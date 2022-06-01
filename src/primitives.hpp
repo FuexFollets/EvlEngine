@@ -9,13 +9,21 @@ struct Cordinate {
     Cordinate(uint8_t x, uint8_t y) : x(x), y(y) {}
     Cordinate() : x(0), y(0) {}
 
-    Cordinate operator+(const Cordinate& other) const {
+    Cordinate operator+(Cordinate& other) const {
         return Cordinate(x + other.x, y + other.y);
     }
+};
 
-    Cordinate operator-(const Cordinate& other) const {
-        return Cordinate(x - other.x, y - other.y);
-    }
+struct nCordinate {
+    int16_t x : 8;
+    int16_t y : 8;
+
+    nCordinate(int16_t x, int16_t y) : x(x), y(y) {}
+    nCordinate() : x(0), y(0) {}
+
+    operator Cordinate() const {
+        return Cordinate{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
+    } 
 };
 
 // 0 = White, 1 = Black
@@ -25,7 +33,7 @@ struct Piece {
     uint8_t type : 4;
     uint8_t color : 4;
     Piece(uint8_t color, uint8_t type) : type(type), color(color) {}
-    Piece() : color(2) {}
+    Piece() : color(color_literals.blank) {}
 };
 
 // Evil bitfield compression
@@ -61,6 +69,18 @@ struct Difference {
     int8_t yDiff;
 };
 
-bool inBounds(const Cordinate cord) {
-    return cord.x < 8 && cord.y < 8;
+nCordinate operator+(Cordinate c, Difference d) {
+    return nCordinate{static_cast<int16_t>(c.x) + d.xDiff, static_cast<int16_t>(c.y) + d.yDiff};
+}
+
+bool inBounds(nCordinate nCord) {
+    return 
+        (nCord.x < 8) && 
+        (-1 < nCord.x) &&
+        (nCord.y < 8) &&
+        (-1 < nCord.y);
+}
+
+bool inBounds(Cordinate cord) {
+    return (cord.x < 8) && (cord.y < 8);
 }

@@ -59,60 +59,67 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
 
     if (piece.color == 2) return av_moves;
 
-    switch(static_cast<uint8_t>(piece.type)) {
-        case piece_literals.pawn:
-            int pawnDirection{(1 - piece.color) * 2};
+    switch(piece.type) {
+        case piece_literals.pawn: {
+            auto pawnDirection{(1 - piece.color) * 2};
             if (atCord(cord.x + pawnDirection, cord.y).color != 2) break;
+            
             av_moves.push_back(ChessMove(cord, Cordinate(cord.x + pawnDirection, cord.y)));
 
             if (atCord(cord.x + 2 * pawnDirection, cord.y).color != 2) break;
+            
             av_moves.push_back(ChessMove(cord, Cordinate(cord.x + 2 * pawnDirection, cord.y)));
 
             if (lastDoublePawnMove > 8) break;
-
+            
             if (lastDoublePawnMove != cord.y) break;
 
             int take_side{static_cast<int>(lastDoublePawnMove) - static_cast<int>(cord.x)};
+            
             if (std::abs(take_side) != 1) break;
 
             av_moves.push_back(ChessMove(cord.x, static_cast<uint8_t>((take_side + 1) / 2), piece.color));
-
+        }
             break;
-
-        case piece_literals.knight:
+        
+        case piece_literals.knight: {
             for (const auto& cordDifference: diff::knight) {
                 if (!inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
                 av_moves.push_back(ChessMove(cord, cord + cordDifference));
             }
+        }
             break;
 
-        case piece_literals.king:
+        case piece_literals.queen:
+        case piece_literals.bishop: {
+            for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
+                if (!inBounds(cord + cordDifference)) break;
+                if (atCord(cord + cordDifference).color == piece.color) break;
+                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                if (atCord(cord + cordDifference).color != piece.color) break; 
+            }
+        }
+            if (piece.type != piece_literals.queen) break;
+    
+        case piece_literals.rook: {
+            for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
+                if (!inBounds(cord + cordDifference)) break;
+                if (atCord(cord + cordDifference).color == piece.color) break;
+                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                if (atCord(cord + cordDifference).color != piece.color) break; 
+            }
+        }
+            break;
+
+        case piece_literals.king: {
             for (const auto& cordDifference: diff::king) {
                 if (inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
                 av_moves.push_back(ChessMove(cord, cord + cordDifference));
             }
             break;
-
-        case piece_literals.queen:
-        case piece_literals.bishop:
-            for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
-                if (!inBounds(cord + cordDifference)) break;
-                if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
-                if (atCord(cord + cordDifference).color != piece.color) break; 
-            }
-
-            if (piece.type != piece_literals.queen) break;   
-        case piece_literals.rook:
-            for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
-                if (!inBounds(cord + cordDifference)) break;
-                if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
-                if (atCord(cord + cordDifference).color != piece.color) break; 
-            }
-            break;
+        }
     }
 
     return av_moves;

@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+
 constexpr struct {
     uint8_t pawn{0};
     uint8_t knight{1};
@@ -15,4 +16,3 @@ constexpr struct {
     uint8_t black{1};
     uint8_t blank{2};
 } color_literals;
-

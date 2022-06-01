@@ -20,6 +20,10 @@ struct nCordinate {
 
     nCordinate(int16_t x, int16_t y) : x(x), y(y) {}
     nCordinate() : x(0), y(0) {}
+
+    operator Cordinate() const {
+        return Cordinate{static_cast<uint8_t>(x), static_cast<uint8_t>(y)};
+    } 
 };
 
 // 0 = White, 1 = Black

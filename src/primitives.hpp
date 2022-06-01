@@ -1,12 +1,21 @@
-#include <bits/stdc++.h>
 #pragma once
-
+#include <bits/stdc++.h>
+#include "piece_literals.hpp"
 
 struct Cordinate {
     uint8_t x : 4;
     uint8_t y : 4;
+
     Cordinate(uint8_t x, uint8_t y) : x(x), y(y) {}
     Cordinate() : x(0), y(0) {}
+
+    Cordinate operator+(const Cordinate& other) const {
+        return Cordinate(x + other.x, y + other.y);
+    }
+
+    Cordinate operator-(const Cordinate& other) const {
+        return Cordinate(x - other.x, y - other.y);
+    }
 };
 
 // 0 = White, 1 = Black
@@ -39,7 +48,7 @@ struct ChessMove { // 0 = normal, 1 = castling, 2 = en passant // 32 bytes
     uint8_t enSide : 1; // 1 bit // 0 = left, 1 = right
 
     ChessMove(Cordinate from, Cordinate to) : moveType(0), start(from), end(to) {} // Normal move
-    ChessMove(uint8_t color, uint8_t side, uint8_t rookStart, uint8_t kingStart = 4) : moveType(1), rookStart(rookStart), kingStart(kingStart), color(color), side(side) {} // Castling
+    ChessMove(uint8_t color, uint8_t side, uint8_t rookStart, uint8_t kingStart) : moveType(1), rookStart(rookStart), kingStart(kingStart), color(color), castleType(side) {} // Castling
     ChessMove(uint8_t row, uint8_t side, uint8_t color) : moveType(2), pawnRow(row), enSide(side), color(color) {} // En passant
 };
 
@@ -51,3 +60,7 @@ struct Difference {
     int8_t xDiff;
     int8_t yDiff;
 };
+
+bool inBounds(const Cordinate cord) {
+    return cord.x < 8 && cord.y < 8;
+}

@@ -1,2 +1,2 @@
 language = "bash"
-run = "g++ main.cpp -o main.out"
+run = "g++ src/main.cpp -o main.out"

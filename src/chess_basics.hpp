@@ -22,6 +22,7 @@ class ChessGame {
 
     public:
 
+    
     uint8_t getTurn() { return turn; }
     ChessGrid getGrid() { return grid; }
 
@@ -29,6 +30,8 @@ class ChessGame {
     MoveList squareMoves(const Cordinate cord);
     MoveList avalibleMoves();
     MoveList legalMoves();
+
+    
 };
 
 void ChessGame::makeMove(const ChessMove move) {

@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 
-
 constexpr struct {
     uint8_t pawn{0};
     uint8_t knight{1};

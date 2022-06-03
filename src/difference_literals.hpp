@@ -50,10 +50,10 @@ namespace diff { // used for avaible move calculation
         return rook;
     }()};
 
-    const std::array<Difference, 2> LeftRight{
-        Difference(1, 0),
-        Difference(-1, 0)
-    };
+    const std::array<std::array<Difference, 2>, 2> PawnCap{{
+        {Difference{-1, -1}, Difference{1, -1}}, // White Left Right
+        {Difference{-1, 1}, Difference{1, 1}} // Black Left Right
+    }};
 
 /*
     std::array<std::array<Difference, 7>, 8> queen{[bishop, rook]{

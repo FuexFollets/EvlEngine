@@ -6,15 +6,19 @@
 class ChessGame {
     uint8_t turn : 1;
     ChessGrid grid;
-    uint8_t lastDoublePawnMove{8}; // used for en passant
-    // 0 - 7 used for rows, any larger means last move was not a double pawn move
-    
+
     struct {
         bool wk : 1;
         bool wq : 1;
         bool bk : 1;
         bool bq : 1;
     } castleRights;
+    
+    struct {
+        uint8_t row : 3;
+        uint8_t side : 1;
+        bool relevant : 1;
+    } enp; // En passant
 
     Piece& atCord(const Cordinate c) { return grid[c.y][c.x]; }
     Piece& atCord(const nCordinate nc) { return grid[nc.y][nc.x]; }
@@ -31,8 +35,11 @@ class ChessGame {
     MoveList avalibleMoves();
     MoveList legalMoves();
 
-    
+    std::string exportFEN(); // Conversion to FEN
+
+    ChessGame(std:string fen); // Construcion from FEN
 };
+
 
 void ChessGame::makeMove(const ChessMove move) {
     switch(move.moveType) {
@@ -62,7 +69,7 @@ void ChessGame::makeMove(const ChessMove move) {
             break;
 
         case movetype_literals.promotion:
-            atCord(move.endX, move.endY) = Piece(move.promotionType, move.color);
+            atCord(move.endX, move.endY) = Piece(move.piece_type, move.color);
             atCord(move.startX, move.startY).color = color_literals.blank;
             break;
     }
@@ -84,10 +91,10 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             }
 
             if (atCord(cord.x, cord.y + piece.color * 2 - 1).color != color_literals.blank) { // pawn capture normal
-                for (const Difference& side: difference_literals.LeftRight) {
+                for (const Difference& side: difference_literals.PawnCap[piece.color]) {
                     if (!inBounds(cord + side)) continue;
                     if (atCord(cord + side).color != opponent(piece.color)) continue;
-                    av_moves.push_back(ChessMove(cord, Cordinate(cord.x + side.x, cord.y + piece.color * 2 - 1)));
+                    av_moves.push_back(ChessMove(cord, Cordinate(cord.x + side.xDiff, cord.y + side.yDiff)));
                 }
                 break;
             }
@@ -98,7 +105,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& cordDifference: diff::knight) {
                 if (!inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
             }
         }
             break;
@@ -108,7 +115,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
                 if (!inBounds(cord + cordDifference)) break;
                 if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
                 if (atCord(cord + cordDifference).color != piece.color) break; 
             }
         }
@@ -118,7 +125,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
                 if (!inBounds(cord + cordDifference)) break;
                 if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
                 if (atCord(cord + cordDifference).color != piece.color) break; 
             }
         }
@@ -128,11 +135,61 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& cordDifference: diff::king) {
                 if (inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
-                av_moves.push_back(ChessMove(cord, cord + cordDifference));
+                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
             }
             break;
         }
     }
 
     return av_moves;
+}
+
+std::string ChessGame::exportFEN() {
+    std::string fen;
+
+    int row_number{};
+    int blank_spaces{};
+    int col_number{};
+    
+    for (const auto& row : grid) {
+        for (const Piece& piece : row) {
+            if ((blank_spaces != 0) &&
+                (col_number == 7)) {
+                fen += (char)(blank_spaces + '0');
+                continue;
+            }
+            
+            if ((blank_spaces != 0) &&
+                (piece.color != 2)) {
+                fen += (char)(blank_spaces + '0');
+                fen += piece_letter[piece];
+                continue;
+            }
+
+            if (piece.color != 2) {
+                fen += piece_letter[piece];
+                continue;
+            }
+            
+            ++blank_spaces;
+            
+        }
+        col_number = 0;
+        if (++row_number == 7) break;
+        fen += '/';
+    } // Board values
+
+    fen += (turn == 0) ? (" w") : (" b"); // Turn
+
+    constexpr std::array<char, 4> c_rights{{'K', 'Q', 'k', 'q'}};
+    int right_number{};
+    for (const auto& right : std::array<bool, 4>{wk, wq, bk, bq}) {
+        fen += (right) : castle_rights[right_number] ? "";
+        ++right_number;
+    }
+
+    if (!enp.relevant) { fen += " -"; }
+    else {
+        
+    }
 }

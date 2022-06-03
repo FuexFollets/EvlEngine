@@ -7,6 +7,7 @@ std::array<std::array<wchar_t, 6>, 3> pieceAscii{{
     {'♙', '♖', '♘', '♗', '♕', '♔'},
     {'▢', '▢', '▢', '▢', '▢', '▢'}
 }};
+
 /*
 std::unordered_map<Piece, wchar_t> pieceAsciiMap {[&pieceAscii]{
     std::unordered_map<Piece, wchar_t> pieceAsciiMap;
@@ -34,7 +35,7 @@ template <> fout_stream& fout_stream::operator<< <Piece> (Piece chessPiece) {
 
 template <> fout_stream& fout_stream::operator<< <ChessGame> (ChessGame cg) {
     std::cout << cg.getTurn();
-    for (const auto& row: cg.getBoard()) {
+    for (const auto& row: cg.getGrid()) {
        for (const auto& val: row) {
            std::cout << pieceAscii[val.color][val.type];
        }

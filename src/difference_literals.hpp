@@ -50,6 +50,11 @@ namespace diff { // used for avaible move calculation
         return rook;
     }()};
 
+    const std::array<Difference, 2> LeftRight{
+        Difference(1, 0),
+        Difference(-1, 0)
+    };
+
 /*
     std::array<std::array<Difference, 7>, 8> queen{[bishop, rook]{
         std::array<std::array<Difference, 7>, 8> queen;

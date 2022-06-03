@@ -36,23 +36,35 @@ class ChessGame {
 
 void ChessGame::makeMove(const ChessMove move) {
     switch(move.moveType) {
-        case 0: // Normal move
-            atCord(move.end) = atCord(move.start);
-            atCord(move.start) = Piece();
-            break;
-        case 1: // Castle
-            if (move.castleType == 0) {
-                atCord(2, (1 - move.color) * 7) = Piece(move.color, piece_literals.king);
-                atCord(3, (1 - move.color) * 7) = Piece(move.color, piece_literals.rook);
-            } else {
-                atCord(6, (1 - move.color) * 7) = Piece(move.color, piece_literals.king);
-                atCord(5, (1 - move.color) * 7) = Piece(move.color, piece_literals.rook);
-            }
-        case 2: // En passant
-            atCord(move.pawnRow, move.color + 3) = Piece();
-            atCord(move.pawnRow, 3 * move.color + 2) = Piece(move.color, 0);
+        case movetype_literals.normal: // Normal move
+            atCord(move.endX, move.endY) = atCord(move.startX, move.startY);
+            atCord(move.startX, move.startY).color = color_literals.blank;
             break;
 
+        case movetype_literals.castle: // Castling
+            if (move.castleType == 0) {
+                atCord(6, 7 - move.color * 7) = Piece(piece_literals.king, move.color);
+                atCord(5, 7 - move.color * 7) = Piece(piece_literals.rook, move.color);
+                atCord(7, 7 - move.color * 7).color = color_literals.blank;
+                atCord(7, 7 - move.color * 7).color = color_literals.blank;
+            } else {
+                atCord(2, 7 - move.color * 7) = Piece(piece_literals.king, move.color);
+                atCord(3, 7 - move.color * 7) = Piece(piece_literals.rook, move.color);
+                atCord(0, 7 - move.color * 7).color = color_literals.blank;
+                atCord(0, 7 - move.color * 7).color = color_literals.blank;
+            }
+            break;
+
+        case movetype_literals.en_passant:
+            atCord(move.endX, move.endY) = Piece(piece_literals.pawn, move.color);
+            atCord(move.startX, move.startY).color = color_literals.blank;
+            atCord(move.endX, move.startY).color = color_literals.blank;
+            break;
+
+        case movetype_literals.promotion:
+            atCord(move.endX, move.endY) = Piece(move.promotionType, move.color);
+            atCord(move.startX, move.startY).color = color_literals.blank;
+            break;
     }
 }
 
@@ -64,24 +76,21 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
 
     switch(piece.type) {
         case piece_literals.pawn: {
-            auto pawnDirection{(1 - piece.color) * 2};
-            if (atCord(cord.x + pawnDirection, cord.y).color != 2) break;
-            
-            av_moves.push_back(ChessMove(cord, Cordinate(cord.x + pawnDirection, cord.y)));
+            if (cord.y == 1 + piece.color * 5) { // pawn promotion
+                for (uint8_t piece_type{1}; piece_type < 5; piece_type++) {
+                    av_moves.push_back(ChessMove(piece.color, Piece(piece_type, piece.color)));
+                }
+                break;
+            }
 
-            if (atCord(cord.x + 2 * pawnDirection, cord.y).color != 2) break;
-            
-            av_moves.push_back(ChessMove(cord, Cordinate(cord.x + 2 * pawnDirection, cord.y)));
-
-            if (lastDoublePawnMove > 8) break;
-            
-            if (lastDoublePawnMove != cord.y) break;
-
-            int take_side{static_cast<int>(lastDoublePawnMove) - static_cast<int>(cord.x)};
-            
-            if (std::abs(take_side) != 1) break;
-
-            av_moves.push_back(ChessMove(cord.x, static_cast<uint8_t>((take_side + 1) / 2), piece.color));
+            if (atCord(cord.x, cord.y + piece.color * 2 - 1).color != color_literals.blank) { // pawn capture normal
+                for (const Difference& side: difference_literals.LeftRight) {
+                    if (!inBounds(cord + side)) continue;
+                    if (atCord(cord + side).color != opponent(piece.color)) continue;
+                    av_moves.push_back(ChessMove(cord, Cordinate(cord.x + side.x, cord.y + piece.color * 2 - 1)));
+                }
+                break;
+            }
         }
             break;
         

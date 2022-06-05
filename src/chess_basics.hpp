@@ -1,11 +1,54 @@
+#pragma once
 #include "primitives.hpp"
 #include "difference_literals.hpp"
-#include "piece_literals.hpp"
-#pragma once
+#include "literals.hpp"
+#include "object_output_values.hpp"
+
+typedef std::array<std::array<Piece, 8>, 8> ChessGrid;
+
+// Evil bitfield compression
+struct ChessMove { // 0 = normal, 1 = castling, 2 = en passant, 3 = Promotion // 32 bytes
+    uint8_t moveType : 2; // 2 bits
+
+    uint8_t color : 1; // 1 bit
+
+    uint8_t startX : 3; // 3 bits
+    uint8_t startY : 3; // 3 bits
+
+    uint8_t endX : 3; // 3 bits
+    uint8_t endY : 3; // 3 bits
+
+    uint8_t castleType : 2; // 2 bits
+
+    uint8_t piece_type : 3; // 3 bits
+
+    ChessMove();
+    ChessMove(uint8_t, Cordinate, Cordinate); // Normal move
+    ChessMove(uint8_t, uint8_t, uint8_t, uint8_t); // Castling
+    ChessMove(uint8_t, uint8_t, uint8_t); // En passant // 0 = left, 1 = right
+    ChessMove(uint8_t, Piece); // Promotion
+};
+
+ChessMove::ChessMove() {}
+
+ChessMove::ChessMove(uint8_t color, Cordinate start, Cordinate end) : 
+        moveType(movetype_literals.normal), color(color), startX(start.x), startY(start.y), endX(end.x), endY(end.y), castleType(0), piece_type(0) {}
+
+ChessMove::ChessMove(uint8_t color, uint8_t castleType, uint8_t rookStart, uint8_t kingstart) : 
+        moveType(movetype_literals.castle), color(color), startX(rookStart), startY(kingstart), endX(0), endY(0), castleType(castleType), piece_type(0) {}
+
+ChessMove::ChessMove(uint8_t color, uint8_t row, uint8_t take_side) : 
+        moveType(movetype_literals.en_passant), color(color), startX(row), startY(3 + color), endX(row - take_side * 2), endY(2 + 3 * color), castleType(0), piece_type(0) {}
+
+ChessMove::ChessMove(uint8_t row, Piece piece) : 
+        moveType(movetype_literals.promotion), color(piece.color), startX(row), startY(1 + 5 * color), endX(row), endY(7 * color), castleType(0), piece_type(piece.type) {}
+
+typedef std::vector<ChessMove> MoveList;
 
 class ChessGame {
-    uint8_t turn : 1;
     ChessGrid grid;
+
+    uint8_t turn : 1;
 
     struct {
         bool wk : 1;
@@ -19,6 +62,11 @@ class ChessGame {
         uint8_t side : 1;
         bool relevant : 1;
     } enp; // En passant
+
+    struct {
+        uint8_t half;
+        uint8_t full;
+    } move_clock;
 
     Piece& atCord(const Cordinate c) { return grid[c.y][c.x]; }
     Piece& atCord(const nCordinate nc) { return grid[nc.y][nc.x]; }
@@ -37,7 +85,8 @@ class ChessGame {
 
     std::string exportFEN(); // Conversion to FEN
 
-    ChessGame(std:string fen); // Construcion from FEN
+    ChessGame(std::string fen); // Construcion from FEN
+
 };
 
 
@@ -91,10 +140,10 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             }
 
             if (atCord(cord.x, cord.y + piece.color * 2 - 1).color != color_literals.blank) { // pawn capture normal
-                for (const Difference& side: difference_literals.PawnCap[piece.color]) {
+                for (const Difference& side: diff::PawnCap[piece.color]) {
                     if (!inBounds(cord + side)) continue;
                     if (atCord(cord + side).color != opponent(piece.color)) continue;
-                    av_moves.push_back(ChessMove(cord, Cordinate(cord.x + side.xDiff, cord.y + side.yDiff)));
+                    av_moves.push_back(ChessMove(piece.color, cord, Cordinate(cord.x + side.xDiff, cord.y + side.yDiff)));
                 }
                 break;
             }
@@ -105,7 +154,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& cordDifference: diff::knight) {
                 if (!inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
-                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
+                av_moves.push_back(ChessMove(piece.color, cord, Cordinate(cord + cordDifference)));
             }
         }
             break;
@@ -115,7 +164,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
                 if (!inBounds(cord + cordDifference)) break;
                 if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
+                av_moves.push_back(ChessMove(piece.color, cord, Cordinate(cord + cordDifference)));
                 if (atCord(cord + cordDifference).color != piece.color) break; 
             }
         }
@@ -125,7 +174,7 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& direction: diff::rook) for (const auto& cordDifference: direction) {
                 if (!inBounds(cord + cordDifference)) break;
                 if (atCord(cord + cordDifference).color == piece.color) break;
-                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
+                av_moves.push_back(ChessMove(piece.color, cord, Cordinate(cord + cordDifference)));
                 if (atCord(cord + cordDifference).color != piece.color) break; 
             }
         }
@@ -135,13 +184,63 @@ MoveList ChessGame::squareMoves(const Cordinate cord) { // moves for a singular 
             for (const auto& cordDifference: diff::king) {
                 if (inBounds(cord + cordDifference)) continue;
                 if (atCord(cord + cordDifference).color == piece.color) continue;
-                av_moves.push_back(ChessMove(cord, Cordinate(cord + cordDifference)));
+                av_moves.push_back(ChessMove(piece.color, cord, Cordinate(cord + cordDifference)));
             }
             break;
         }
     }
 
     return av_moves;
+}
+
+ChessGame::ChessGame(std::string fen) {
+    std::array<std::string, 6> fen_split;
+    int fen_split_index{0};
+    
+    for (const auto& letter: fen) { 
+        if (letter == ' ') {
+            fen_split_index++;
+            continue;
+        }
+        fen_split[fen_split_index] += letter;
+    }
+
+    int row_index{0}, col_index{0};
+
+    for (const auto& letter: fen_split[0]) {
+        if (letter == '/') {
+            row_index++;
+            col_index = 0;
+            continue;
+        }
+
+        if (letter >= '1' && letter <= '8') {
+            col_index += letter - '0';
+            continue;
+        }
+
+        atCord(col_index, row_index) = letter_to_piece.at(letter);
+        col_index++;
+    }
+
+    turn = (fen_split[0]) == "w" ? color_literals.white : color_literals.black;
+
+    std::string all_rights("KQkq");
+    std::array<bool, 4> stored_rights{castleRights.wk, castleRights.wq, castleRights.bk, castleRights.bq};
+    for (int i{0}; i < 4; i++) {
+        if (fen_split[2].find(all_rights[i]) != std::string::npos) {
+            stored_rights[i] = true;
+        }
+    }
+
+    if (fen_split[3][0] != '-') {
+        enp.relevant = true;
+        enp.row = fen_split[3][0] - 'a';
+        enp.side = fen_split[3][1] - '1';
+    } else { enp.relevant = false; }
+
+    move_clock.half = std::stoi(fen_split[4]);
+    move_clock.full = std::stoi(fen_split[5]);
 }
 
 std::string ChessGame::exportFEN() {
@@ -181,15 +280,22 @@ std::string ChessGame::exportFEN() {
 
     fen += (turn == 0) ? (" w") : (" b"); // Turn
 
-    constexpr std::array<char, 4> c_rights{{'K', 'Q', 'k', 'q'}};
+    constexpr std::array<const char*, 4> c_right_letter{{"K", "Q", "k", "q"}};
     int right_number{};
-    for (const auto& right : std::array<bool, 4>{wk, wq, bk, bq}) {
-        fen += (right) : castle_rights[right_number] ? "";
+    for (const auto& right : std::array<bool, 4>{castleRights.wk, castleRights.wq, castleRights.bk, castleRights.bq}) {
+        fen += (right) ? (c_right_letter[right_number]) : "";
         ++right_number;
     }
 
     if (!enp.relevant) { fen += " -"; }
     else {
-        
+        fen += 'a' + enp.row;
+        fen += (enp.side == 1) ? "6 " : "3 ";
     }
+
+    fen += (char)(move_clock.half + '0');
+    fen += ' ';
+    fen += (char)(move_clock.full + '0');
+    
+    return fen;
 }

@@ -1,7 +1,9 @@
-#include "chess_basics.hpp"
-#include "objects_output.hpp"
+//#include "interface.hpp"
+//#include "chess_basics.hpp"
+#include <iostream>
 
 int main() {
-    std::cout << "Hello, World!" << '\n';
+    std::cout << "And this is the new code" << '\n';
+    // this text will not cause an error over here
     return 0;
 }
